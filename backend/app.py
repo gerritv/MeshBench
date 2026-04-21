@@ -76,6 +76,28 @@ def router_table():
             "status": "error",
             "message": str(e)
         }
+@app.get("/api/logs/otbr")
+def otbr_logs():
+    try:
+        result = subprocess.run(
+            ["docker", "logs", "--tail", "50", "otbr"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        combined = result.stdout + result.stderr
+
+        return {
+            "status": "ok",
+            "logs": combined.splitlines()
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 @app.post("/api/command")
 def run_command(cmd: str):

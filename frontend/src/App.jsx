@@ -4,12 +4,16 @@ function App() {
   const [health, setHealth] = useState(null);
   const [thread, setThread] = useState(null);
   const [routers, setRouters] = useState([]);
+  const [logs, setLogs] = useState([]);
 
   const loadData = async () => {
     try {
       const h = await fetch("http://192.168.1.71:8000/api/health");
       const s = await fetch("http://192.168.1.71:8000/api/thread/state");
       const r = await fetch("http://192.168.1.71:8000/api/thread/router-table");
+      const l = await fetch("http://192.168.1.71:8000/api/logs/otbr");
+      const logJson = await l.json();
+      setLogs(logJson.logs || []);
 
       setHealth(await h.json());
       const threadJson = await s.json();
@@ -83,6 +87,13 @@ function App() {
             ))}
           </tbody>
         </table>
+      </div>
+      <div style={styles.card}>
+        <div style={styles.sectionTitle}>OTBR Logs</div>
+
+        <pre style={styles.logBox}>
+          {logs.join("\n")}
+        </pre>
       </div>
     </div>
   );
@@ -178,6 +189,17 @@ const styles = {
   cell: {
     padding: "10px",
     borderBottom: "1px solid #333"
+  },
+  logBox: {
+    background: "#0c0c0c",
+    padding: "15px",
+    borderRadius: "10px",
+    maxHeight: "300px",
+    overflowY: "auto",
+    color: "#7CFC90",
+    fontSize: "13px",
+    textAlign: "left",
+    fontFamily: "Consolas, monospace"
   }
 };
 
