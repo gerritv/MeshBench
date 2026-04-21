@@ -5,13 +5,14 @@ function App() {
   const [thread, setThread] = useState(null);
   const [routers, setRouters] = useState([]);
   const [logs, setLogs] = useState([]);
+  const API = import.meta.env.VITE_API_BASE;
 
   const loadData = async () => {
     try {
-      const h = await fetch("http://192.168.1.71:8000/api/health");
-      const s = await fetch("http://192.168.1.71:8000/api/thread/state");
-      const r = await fetch("http://192.168.1.71:8000/api/thread/router-table");
-      const l = await fetch("http://192.168.1.71:8000/api/logs/otbr");
+      const h = await fetch(`${API}/api/health`);
+      const s = await fetch(`${API}/api/thread/state`);
+      const r = await fetch(`${API}/api/thread/router-table`);
+      const l = await fetch(`${API}/api/logs/otbr`);
       const logJson = await l.json();
       setLogs(logJson.logs || []);
 

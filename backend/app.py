@@ -1,6 +1,13 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
+
+OTBR_CONTAINER = os.getenv("OTBR_CONTAINER", "otbr")
+LOG_LINES = int(os.getenv("LOG_LINES", 50))
 
 app = FastAPI(title="MeshBench")
 
@@ -24,7 +31,7 @@ def health():
 def thread_state():
     try:
         result = subprocess.run(
-            ["docker", "exec", "otbr", "ot-ctl", "state"],
+            ["docker", "exec", OTBR_CONTAINER, "ot-ctl", "state"],
             capture_output=True,
             text=True,
             timeout=5
@@ -54,7 +61,7 @@ def thread_state():
 def router_table():
     try:
         result = subprocess.run(
-            ["docker", "exec", "otbr", "ot-ctl", "router", "table"],
+            ["docker", "exec", OTBR_CONTAINER, "ot-ctl", "router", "table"],
             capture_output=True,
             text=True,
             timeout=5
@@ -80,7 +87,7 @@ def router_table():
 def otbr_logs():
     try:
         result = subprocess.run(
-            ["docker", "logs", "--tail", "50", "otbr"],
+            ["docker", "logs", "--tail", str(LOG_LINES), OTBR_CONTAINER],
             capture_output=True,
             text=True,
             timeout=5
