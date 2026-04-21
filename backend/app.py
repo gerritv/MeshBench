@@ -1,7 +1,16 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 
 app = FastAPI(title="MeshBench")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
@@ -67,7 +76,7 @@ def router_table():
             "status": "error",
             "message": str(e)
         }
-        
+
 @app.post("/api/command")
 def run_command(cmd: str):
     try:

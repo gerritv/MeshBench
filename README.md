@@ -14,3 +14,5 @@ Early development.
 ## Milestones
 2026-04-21: MeshBench backend first boot successful.
 2026-04-21: MeshBench reads live Thread state from OTBR
+2026-04-21: Add router table endpoint from OTBR
+2026-04-21: First MeshBench dashboard with live Thread telemetry
