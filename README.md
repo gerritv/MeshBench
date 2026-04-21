@@ -13,3 +13,4 @@ Early development.
 
 ## Milestones
 2026-04-21: MeshBench backend first boot successful.
+2026-04-21: MeshBench reads live Thread state from OTBR

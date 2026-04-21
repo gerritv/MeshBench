@@ -3,6 +3,10 @@ import subprocess
 
 app = FastAPI(title="MeshBench")
 
+@app.get("/")
+def root():
+    return {"message": "MeshBench is alive"}
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "project": "MeshBench"}
@@ -37,6 +41,33 @@ def thread_state():
             "message": str(e)
         }
 
+@app.get("/api/thread/router-table")
+def router_table():
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "otbr", "ot-ctl", "router", "table"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        lines = [
+            line.strip()
+            for line in result.stdout.splitlines()
+            if line.strip() and line.strip() != "Done"
+        ]
+
+        return {
+            "status": "ok",
+            "rows": lines
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+        
 @app.post("/api/command")
 def run_command(cmd: str):
     try:
