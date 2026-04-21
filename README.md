@@ -10,3 +10,6 @@ Early development.
 - OTBR visibility
 - chip-tool control surface
 - Mesh topology inspection
+
+## Milestones
+2026-04-21: MeshBench backend first boot successful.

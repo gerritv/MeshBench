@@ -9,8 +9,33 @@ def health():
 
 @app.get("/api/thread/state")
 def thread_state():
-    # mocked for now
-    return {"state": "leader"}
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "otbr", "ot-ctl", "state"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        raw = result.stdout.strip().splitlines()
+        lines = [line for line in raw if line.strip() != "Done"]
+
+        return {
+            "status": "ok",
+            "state": lines[0] if lines else "unknown"
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 @app.post("/api/command")
 def run_command(cmd: str):
