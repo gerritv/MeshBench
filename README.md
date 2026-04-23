@@ -12,7 +12,18 @@ Early development.
 - Mesh topology inspection
 
 ## Prerequisites
-python3, pip, npm, fastapi, uvicorn, python-dotenv
+
+- Python 3.11+
+- Node.js + npm
+- Docker
+- Docker Compose (recommended)
+- Access to OTBR container
+
+## Backend Python Packages
+
+- fastapi
+- uvicorn
+- python-dotenv
 
 ## Milestones
 2026-04-21: MeshBench backend first boot successful.
@@ -20,4 +31,6 @@ python3, pip, npm, fastapi, uvicorn, python-dotenv
 2026-04-21: Add router table endpoint from OTBR
 2026-04-21: First MeshBench dashboard with live Thread telemetry
 2026-04-21: Polished MeshBench dashboard UI
+2026-04-21: OTBR logs pane added
 2026-04-21: Move frontend and backend settings to env config
+2026-04-23: Add child count, ping command and improve dashboard metrics

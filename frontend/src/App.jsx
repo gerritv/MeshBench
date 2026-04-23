@@ -1,38 +1,78 @@
 import { useEffect, useState } from "react";
 
+const API = import.meta.env.VITE_API_BASE;
+
 function App() {
   const [health, setHealth] = useState(null);
   const [thread, setThread] = useState(null);
   const [routers, setRouters] = useState([]);
   const [logs, setLogs] = useState([]);
-  const API = import.meta.env.VITE_API_BASE;
+  const [updated, setUpdated] = useState("");
+  const [children, setChildren] = useState([]);
+  const [neighbors, setNeighbors] = useState([]);
+  const [pingTarget, setPingTarget] = useState("");
+  const [pingResult, setPingResult] = useState([]);
 
+  const runPing = async () => {
+    try {
+      const r = await fetch(
+        `${API}/api/thread/ping?target=${encodeURIComponent(pingTarget)}`
+      );
+
+      const json = await r.json();
+      setPingResult(json.rows || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const loadData = async () => {
     try {
       const h = await fetch(`${API}/api/health`);
       const s = await fetch(`${API}/api/thread/state`);
       const r = await fetch(`${API}/api/thread/router-table`);
       const l = await fetch(`${API}/api/logs/otbr`);
-      const logJson = await l.json();
-      setLogs(logJson.logs || []);
+      const c = await fetch(`${API}/api/thread/child-table`);
+      const n = await fetch(`${API}/api/thread/neighbor-table`);
+
+      const neighborJson = await n.json();
+
+      const parsedNeighbors = (neighborJson.rows || [])
+        .filter(line => line.includes("|"))
+        .map(line =>
+          line.split("|").map(x => x.trim()).filter(x => x !== "")
+        )
+        .filter(cols => cols.length > 2);
+
+      setNeighbors(parsedNeighbors);
+
+      const childJson = await c.json();
+
+      const parsedChildren = (childJson.rows || [])
+        .filter(line => line.includes("|"))
+        .map(line =>
+          line.split("|").map(x => x.trim()).filter(x => x !== "")
+        )
+        .filter(cols => cols.length > 2);
+
+      setChildren(parsedChildren);
 
       setHealth(await h.json());
-      const threadJson = await s.json();
-      setThread(threadJson);
+      setThread(await s.json());
 
       const routerJson = await r.json();
-
       const parsed = (routerJson.rows || [])
         .filter(line => line.includes("|"))
         .map(line =>
-          line
-            .split("|")
-            .map(x => x.trim())
-            .filter(x => x !== "")
+          line.split("|").map(x => x.trim()).filter(x => x !== "")
         )
         .filter(cols => cols.length > 2);
 
       setRouters(parsed);
+
+      const logJson = await l.json();
+      setLogs(logJson.logs || []);
+
+      setUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error(err);
     }
@@ -44,43 +84,31 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  const role = thread?.state || "unknown";
-
   return (
     <div style={styles.page}>
-      <div style={styles.topRow}>
-        <h1 style={styles.title}>MeshBench</h1>
-        <button onClick={loadData} style={styles.button}>
-          Refresh
-        </button>
+      <div style={styles.header}>
+        <div>
+          <div style={styles.title}>MeshBench</div>
+          <div style={styles.sub}>Updated {updated || "..."}</div>
+        </div>
+        <button style={styles.button} onClick={loadData}>Refresh</button>
       </div>
 
-      <div style={styles.grid}>
-        <div style={styles.card}>
-          <div style={styles.label}>Backend</div>
-          <div style={badge(health?.status === "ok" ? "green" : "red")}>
-            {health?.status || "loading"}
-          </div>
-        </div>
-
-        <div style={styles.card}>
-          <div style={styles.label}>Thread Role</div>
-          <div style={badge(roleColor(role))}>{role}</div>
-        </div>
+      <div style={styles.topGrid}>
+        <Card title="Backend" value={health?.status || "..."} />
+        <Card title="Thread Role" value={thread?.state || "..."} />
+        <Card title="Children" value={Math.max(children.length - 1, 0)} />
+        <Card title="Matter" value="Pending" />
       </div>
 
       <div style={styles.card}>
-        <div style={styles.sectionTitle}>Router Table</div>
-
+        <div style={styles.section}>Router Table</div>
         <table style={styles.table}>
           <tbody>
             {routers.map((row, i) => (
               <tr key={i}>
                 {row.map((cell, j) => (
-                  <td
-                    key={j}
-                    style={i === 0 ? styles.headerCell : styles.cell}
-                  >
+                  <td key={j} style={i === 0 ? styles.headCell : styles.cell}>
                     {cell}
                   </td>
                 ))}
@@ -90,9 +118,65 @@ function App() {
         </table>
       </div>
       <div style={styles.card}>
-        <div style={styles.sectionTitle}>OTBR Logs</div>
+        <div style={styles.section}>Child Table</div>
 
-        <pre style={styles.logBox}>
+        <table style={styles.table}>
+          <tbody>
+            {children.map((row, i) => (
+              <tr key={i}>
+                {row.map((cell, j) => (
+                  <td key={j} style={i === 0 ? styles.headCell : styles.cell}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.section}>Neighbor Table</div>
+
+        <table style={styles.table}>
+          <tbody>
+            {neighbors.map((row, i) => (
+              <tr key={i}>
+                {row.map((cell, j) => (
+                  <td key={j} style={i === 0 ? styles.headCell : styles.cell}>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.section}>Ping Tool</div>
+
+        <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+          <input
+            value={pingTarget}
+            onChange={(e) => setPingTarget(e.target.value)}
+            placeholder="fdxx::1234"
+            style={styles.input}
+          />
+
+          <button style={styles.button} onClick={runPing}>
+            Ping
+          </button>
+        </div>
+
+        <pre style={styles.logs}>
+          {pingResult.join("\n")}
+        </pre>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.section}>OTBR Logs</div>
+        <pre style={styles.logs}>
           {logs.join("\n")}
         </pre>
       </div>
@@ -100,107 +184,120 @@ function App() {
   );
 }
 
-function roleColor(role) {
-  if (role === "leader") return "green";
-  if (role === "router") return "blue";
-  if (role === "child") return "orange";
-  if (role === "detached") return "red";
-  return "gray";
-}
-
-function badge(color) {
-  const colors = {
-    green: "#1f7a1f",
-    blue: "#2457d6",
-    orange: "#c97a12",
-    red: "#a52727",
-    gray: "#555"
-  };
-
-  return {
-    display: "inline-block",
-    background: colors[color],
-    padding: "8px 14px",
-    borderRadius: "999px",
-    fontWeight: "bold",
-    marginTop: "10px",
-    minWidth: "90px",
-    textAlign: "center"
-  };
+function Card({ title, value }) {
+  return (
+    <div style={styles.card}>
+      <div style={styles.label}>{title}</div>
+      <div style={styles.value}>{value}</div>
+    </div>
+  );
 }
 
 const styles = {
   page: {
     background: "#0a0a0a",
-    color: "#eaeaea",
+    color: "#eee",
     minHeight: "100vh",
-    padding: "30px",
-    fontFamily: "Arial, sans-serif"
+    padding: "14px",
+    fontFamily: "Arial, sans-serif",
+    fontSize: "14px"
   },
-  topRow: {
+
+  header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "25px"
+    marginBottom: "12px"
   },
+
   title: {
-    fontSize: "52px",
-    margin: 0
+    fontSize: "28px",
+    fontWeight: "bold"
   },
+
+  sub: {
+    fontSize: "12px",
+    color: "#999"
+  },
+
+  topGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+    gap: "10px",
+    marginBottom: "10px"
+  },
+
+  card: {
+    background: "#171717",
+    borderRadius: "10px",
+    padding: "12px",
+    marginBottom: "10px"
+  },
+
+  label: {
+    fontSize: "11px",
+    color: "#888",
+    textTransform: "uppercase"
+  },
+
+  value: {
+    fontSize: "20px",
+    marginTop: "6px"
+  },
+
+  section: {
+    fontSize: "14px",
+    fontWeight: "bold",
+    marginBottom: "8px"
+  },
+
   button: {
     background: "#222",
     color: "#fff",
     border: "1px solid #444",
-    padding: "10px 18px",
-    borderRadius: "10px",
-    cursor: "pointer"
+    borderRadius: "8px",
+    padding: "6px 12px",
+    cursor: "pointer",
+    fontSize: "13px"
   },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "20px",
-    marginBottom: "20px"
-  },
-  card: {
-    background: "#171717",
-    padding: "20px",
-    borderRadius: "14px",
-    boxShadow: "0 0 10px rgba(0,0,0,0.35)"
-  },
-  label: {
-    fontSize: "14px",
-    color: "#999",
-    textTransform: "uppercase",
-    letterSpacing: "1px"
-  },
-  sectionTitle: {
-    fontSize: "22px",
-    marginBottom: "14px"
-  },
+
   table: {
     width: "100%",
-    borderCollapse: "collapse"
+    borderCollapse: "collapse",
+    fontSize: "12px"
   },
-  headerCell: {
-    padding: "10px",
-    borderBottom: "2px solid #555",
-    fontWeight: "bold",
-    color: "#9fd3ff"
+
+  headCell: {
+    padding: "6px",
+    borderBottom: "1px solid #555",
+    color: "#8fd3ff",
+    fontWeight: "bold"
   },
+
   cell: {
-    padding: "10px",
-    borderBottom: "1px solid #333"
+    padding: "6px",
+    borderBottom: "1px solid #2d2d2d"
   },
-  logBox: {
+
+  input: {
+    flex: 1,
+    background: "#111",
+    color: "#fff",
+    border: "1px solid #444",
+    borderRadius: "8px",
+    padding: "8px"
+  },
+
+  logs: {
     background: "#0c0c0c",
-    padding: "15px",
-    borderRadius: "10px",
-    maxHeight: "300px",
+    padding: "10px",
+    borderRadius: "8px",
+    maxHeight: "220px",
     overflowY: "auto",
-    color: "#7CFC90",
-    fontSize: "13px",
+    fontSize: "11px",
     textAlign: "left",
-    fontFamily: "Consolas, monospace"
+    fontFamily: "Consolas, monospace",
+    color: "#8df58d"
   }
 };
 
