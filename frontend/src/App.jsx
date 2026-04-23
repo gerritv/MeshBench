@@ -12,6 +12,8 @@ function App() {
   const [neighbors, setNeighbors] = useState([]);
   const [pingTarget, setPingTarget] = useState("");
   const [pingResult, setPingResult] = useState([]);
+  const [dataset, setDataset] = useState({});
+  const [showDataset, setShowDataset] = useState(false);
 
   const runPing = async () => {
     try {
@@ -33,6 +35,9 @@ function App() {
       const l = await fetch(`${API}/api/logs/otbr`);
       const c = await fetch(`${API}/api/thread/child-table`);
       const n = await fetch(`${API}/api/thread/neighbor-table`);
+      const d = await fetch(`${API}/api/thread/dataset`);
+      const datasetJson = await d.json();
+      setDataset(datasetJson.dataset || {});
 
       const neighborJson = await n.json();
 
@@ -151,6 +156,44 @@ function App() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div style={styles.card}>
+        <div
+          style={styles.sectionClickable}
+          onClick={() => setShowDataset(!showDataset)}
+        >
+          {(dataset.network_name || "Unknown")}
+          {" | Ch "}
+          {(dataset.channel || "?")}
+          {" | PAN "}
+          {(dataset.pan_id || "?")}
+          {" "}
+          {showDataset ? "▲" : "▼"}
+        </div>
+
+        {showDataset && (
+          <table style={styles.table}>
+            <tbody>
+              {Object.entries(dataset).map(([key, value]) => (
+                <tr key={key}>
+                  <td
+                    style={{
+                      ...styles.headCell,
+                      color:
+                        key === "network_key" || key === "pskc"
+                          ? "#caa85a"
+                          : styles.headCell.color
+                    }}
+                  >
+                    {key.replaceAll("_", " ")}
+                  </td>
+                  <td style={styles.cell}>{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div style={styles.card}>
@@ -279,6 +322,19 @@ const styles = {
     borderBottom: "1px solid #2d2d2d"
   },
 
+  sectionClickable: {
+    fontSize: "14px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    userSelect: "none",
+    color: "#d8e6ff",
+    marginBottom: "8px"
+  },
+  notice: {
+    fontSize: "11px",
+    color: "#caa85a",
+    marginBottom: "8px"
+  },
   input: {
     flex: 1,
     background: "#111",

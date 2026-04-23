@@ -166,6 +166,45 @@ def otbr_logs():
             "message": str(e)
         }
 
+@app.get("/api/thread/dataset")
+def thread_dataset():
+    try:
+        result = subprocess.run(
+            ["docker", "exec", OTBR_CONTAINER, "ot-ctl", "dataset", "active"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        combined = result.stdout + result.stderr
+
+        data = {}
+
+        for line in combined.splitlines():
+            line = line.strip()
+
+            if not line or line == "Done":
+                continue
+
+            if ":" in line:
+                key, value = line.split(":", 1)
+
+                key = key.strip().lower().replace(" ", "_").replace("-", "_")
+                value = value.strip()
+
+                data[key] = value
+
+        return {
+            "status": "ok",
+            "dataset": data
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 @app.get("/api/thread/ping")
 def thread_ping(target: str = Query(...)):
     try:
@@ -194,7 +233,7 @@ def thread_ping(target: str = Query(...)):
             "status": "error",
             "message": str(e)
         }
-        
+
 @app.post("/api/command")
 def run_command(cmd: str):
     try:

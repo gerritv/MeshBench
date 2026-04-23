@@ -2,6 +2,9 @@
 
 An oscilloscope for your Matter + Thread network.
 
+MeshBench focuses on direct Thread and Matter diagnostics, control, and commissioning.
+Platform-specific smart-home integrations are intentionally out of scope.
+
 ## Status
 Early development.
 
@@ -10,6 +13,7 @@ Early development.
 - OTBR visibility
 - chip-tool control surface
 - Mesh topology inspection
+- Future: Multi-OTBR discovery and target switching
 
 ## Prerequisites
 
@@ -34,3 +38,4 @@ Early development.
 2026-04-21: OTBR logs pane added
 2026-04-21: Move frontend and backend settings to env config
 2026-04-23: Add child count, ping command and improve dashboard metrics
+2026-04-23: Refine dataset viewer UX and compact dashboard layout
