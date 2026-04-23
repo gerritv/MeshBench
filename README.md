@@ -5,6 +5,8 @@ An oscilloscope for your Matter + Thread network.
 MeshBench focuses on direct Thread and Matter diagnostics, control, and commissioning.
 Platform-specific smart-home integrations are intentionally out of scope.
 
+![MeshBench Dashboard](docs/images/meshbench-main.png)
+
 ## Status
 Early development.
 
