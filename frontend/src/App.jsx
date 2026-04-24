@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const API = import.meta.env.VITE_API_BASE;
 
@@ -14,6 +14,9 @@ function App() {
   const [pingResult, setPingResult] = useState([]);
   const [dataset, setDataset] = useState({});
   const [showDataset, setShowDataset] = useState(false);
+  const prevChildrenRef = useRef({});
+  const initializedRef = useRef(false);
+  const [toast, setToast] = useState("");
 
   const runPing = async () => {
     try {
@@ -36,9 +39,12 @@ function App() {
       const c = await fetch(`${API}/api/thread/child-table`);
       const n = await fetch(`${API}/api/thread/neighbor-table`);
       const d = await fetch(`${API}/api/thread/dataset`);
+
+      // Retrieve Dataset      
       const datasetJson = await d.json();
       setDataset(datasetJson.dataset || {});
 
+      // Retrieve Neighbours
       const neighborJson = await n.json();
 
       const parsedNeighbors = (neighborJson.rows || [])
@@ -50,20 +56,98 @@ function App() {
 
       setNeighbors(parsedNeighbors);
 
+      // Retrieve Children
       const childJson = await c.json();
 
       const parsedChildren = (childJson.rows || [])
-        .filter(line => line.includes("|"))
-        .map(line =>
-          line.split("|").map(x => x.trim()).filter(x => x !== "")
+        .filter((line) => line.includes("|"))
+        .map((line) =>
+          line.split("|").map((x) => x.trim()).filter((x) => x !== "")
         )
-        .filter(cols => cols.length > 2);
+        .filter((cols) => cols.length > 2);
 
       setChildren(parsedChildren);
 
+      // Need at least header row
+      if (parsedChildren.length > 0) {
+        const header = parsedChildren[0];
+
+        // Find useful columns dynamically
+        const ageIndex = header.findIndex(
+          (col) => col.toLowerCase() === "age"
+        );
+
+        const macIndex = header.findIndex(
+          (col) =>
+            col.toLowerCase().includes("ext") ||
+            col.toLowerCase().includes("mac")
+        );
+
+        const childRows = parsedChildren.slice(1);
+
+        const current = {};
+
+        childRows.forEach((row) => {
+          const mac =
+            macIndex >= 0
+              ? row[macIndex]
+              : row[row.length - 1];
+
+          const age =
+            ageIndex >= 0
+              ? parseInt(row[ageIndex], 10)
+              : 0;
+
+          if (mac) {
+            current[mac] = isNaN(age) ? 0 : age;
+          }
+        });
+
+        const previous = prevChildrenRef.current;
+
+        // Skip notifications on very first load
+        if (initializedRef.current) {
+          const joined = Object.keys(current).filter(
+            (mac) => !(mac in previous)
+          );
+
+          const left = Object.keys(previous).filter(
+            (mac) => !(mac in current)
+          );
+
+          const rejoined = Object.keys(current).filter(
+            (mac) =>
+              mac in previous &&
+              current[mac] < previous[mac]
+          );
+
+          if (joined.length > 0) {
+            setToast(
+              `New child joined: ${joined[0].slice(0, 8)}...`
+            );
+          } else if (left.length > 0) {
+            setToast(
+              `Child left: ${left[0].slice(0, 8)}...`
+            );
+          } else if (rejoined.length > 0) {
+            setToast(
+              `Child rejoined: ${rejoined[0].slice(0, 8)}...`
+            );
+          }
+        }
+
+        // Save current snapshot for next poll
+        prevChildrenRef.current = current;
+        initializedRef.current = true;
+      }
+
+      // Set Health of OTBR (isit alive)
       setHealth(await h.json());
+
+      // Set Thread OTBR Role
       setThread(await s.json());
 
+      // Router List
       const routerJson = await r.json();
       const parsed = (routerJson.rows || [])
         .filter(line => line.includes("|"))
@@ -74,22 +158,37 @@ function App() {
 
       setRouters(parsed);
 
+      // Logs
       const logJson = await l.json();
       setLogs(logJson.logs || []);
 
+      // Show time to re-assure user things are actively updating
       setUpdated(new Date().toLocaleTimeString());
+
     } catch (err) {
       console.error(err);
     }
   };
 
+  // Dynamic Log updates
   useEffect(() => {
     loadData();
     const timer = setInterval(loadData, 5000);
     return () => clearInterval(timer);
   }, []);
 
+  // Timeout for Join/Rejoin notification
+  useEffect(() => {
+    if (!toast) return;
+
+    const t = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+
   return (
+
+
     <div style={styles.page}>
       <div style={styles.header}>
         <div>
@@ -98,7 +197,11 @@ function App() {
         </div>
         <button style={styles.button} onClick={loadData}>Refresh</button>
       </div>
-
+      {toast && (
+        <div style={styles.toast}>
+          {toast}
+        </div>
+      )}
       <div style={styles.topGrid}>
         <Card title="Backend" value={health?.status || "..."} />
         <Card title="Thread Role" value={thread?.state || "..."} />
@@ -269,7 +372,18 @@ const styles = {
     gap: "10px",
     marginBottom: "10px"
   },
-
+  toast: {
+    position: "fixed",
+    top: "20px",
+    right: "20px",
+    background: "#1f7a1f",
+    color: "white",
+    padding: "10px 16px",
+    borderRadius: "8px",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.35)",
+    zIndex: 1000,
+    fontSize: "13px"
+  },
   card: {
     background: "#171717",
     borderRadius: "10px",

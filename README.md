@@ -43,3 +43,5 @@ Early development.
 - 2026-04-23: Refine dataset viewer UX and compact dashboard layout
 - 2026-04-23: First ESPHome MTD joined Thread network
 - 2026-04-23: MeshBench displayed live child + neighbor telemetry
+- 2026-04-24: First ESPHome FTD joined as router-capable node
+- 2026-04-24: MeshBench displayed mixed topology (Leader + Router + Child)
